@@ -2,6 +2,7 @@
   "name": "cedro-mobile",
   "version": "1.0.0",
   "main": "index.js",
+  "sdkVersion": "53.0.0",
   "scripts": {
     "start": "expo start",
     "android": "expo start --android",
@@ -9,6 +10,7 @@
     "web": "expo start --web"
   },
   "dependencies": {
+    "@expo/metro-runtime": "~5.0.5",
     "@expo/vector-icons": "^14.0.4",
     "@react-native-async-storage/async-storage": "^2.1.2",
     "@react-navigation/bottom-tabs": "^6.6.1",
@@ -21,11 +23,13 @@
     "expo-font": "~13.3.1",
     "expo-linear-gradient": "~14.1.4",
     "expo-status-bar": "~2.2.3",
-    "react": "18.3.1",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
     "react-native": "0.76.9",
     "react-native-gesture-handler": "~2.21.2",
     "react-native-safe-area-context": "^5.4.0",
-    "react-native-screens": "^4.10.0"
+    "react-native-screens": "^4.10.0",
+    "react-native-web": "^0.20.0"
   },
   "devDependencies": {
     "@babel/core": "^7.25.0"
