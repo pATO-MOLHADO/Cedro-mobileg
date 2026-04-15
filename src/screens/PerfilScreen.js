@@ -1,17 +1,18 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  TextInput, Alert, ActivityIndicator,
+  TextInput, Alert, ActivityIndicator, Switch,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { authService } from '../services/api';
 import EmergencyButton from '../components/EmergencyButton';
-import { Colors, Spacing, FontSize, BorderRadius, Shadow } from '../theme';
 
 export default function PerfilScreen({ navigation }) {
   const { user, updateUser, logout } = useAuth();
+  const { colors, isDark, toggle, Spacing, FontSize, BorderRadius, Shadow } = useTheme();
   const insets = useSafeAreaInsets();
   const [editando, setEditando] = useState(false);
   const [loading, setLoading]   = useState(false);
@@ -48,100 +49,138 @@ export default function PerfilScreen({ navigation }) {
   };
 
   const FIELDS = [
-    { key: 'nome',     label: 'Nome',     icon: 'person-outline',   keyboard: 'default',       cap: 'words' },
-    { key: 'email',    label: 'Email',    icon: 'mail-outline',      keyboard: 'email-address', cap: 'none' },
-    { key: 'telefone', label: 'Telefone', icon: 'call-outline',      keyboard: 'phone-pad',     cap: 'none' },
+    { key: 'nome',     label: 'Nome',     icon: 'person-outline',  keyboard: 'default',       cap: 'words' },
+    { key: 'email',    label: 'Email',    icon: 'mail-outline',    keyboard: 'email-address', cap: 'none' },
+    { key: 'telefone', label: 'Telefone', icon: 'call-outline',    keyboard: 'phone-pad',     cap: 'none' },
   ];
 
   const MENU = [
-    { icon: 'wallet-outline',      label: 'Meus créditos e planos', onPress: () => navigation.navigate('Créditos') },
-    { icon: 'calendar-outline',    label: 'Minhas sessões',          onPress: () => navigation.navigate('Sessões') },
-    { icon: 'receipt-outline',     label: 'Extrato de créditos',     onPress: () => navigation.navigate('Extrato') },
-    { icon: 'lock-closed-outline', label: 'Alterar senha',           onPress: () => Alert.alert('Em breve', 'Funcionalidade em desenvolvimento.') },
+    { icon: 'wallet-outline',      label: 'Créditos e planos',  onPress: () => navigation.navigate('Créditos') },
+    { icon: 'calendar-outline',    label: 'Minhas sessões',     onPress: () => navigation.navigate('Sessões') },
+    { icon: 'receipt-outline',     label: 'Extrato',            onPress: () => navigation.navigate('Extrato') },
+    { icon: 'lock-closed-outline', label: 'Alterar senha',      onPress: () => Alert.alert('Em breve', 'Funcionalidade em desenvolvimento.') },
   ];
 
+  const AVATAR_INITIAL = user?.nome?.charAt(0)?.toUpperCase() ?? '?';
+  const s = makeStyles(colors, Spacing, FontSize, BorderRadius, Shadow);
+
   return (
-    <View style={styles.container}>
+    <View style={s.container}>
       <ScrollView
-        contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 16 }]}
+        contentContainerStyle={[s.scroll, { paddingTop: insets.top + 16 }]}
         showsVerticalScrollIndicator={false}
       >
         {/* Avatar */}
-        <View style={styles.avatarSection}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarLetter}>{user?.nome?.charAt(0)?.toUpperCase() ?? '?'}</Text>
+        <View style={s.avatarSection}>
+          <View style={s.avatarRing}>
+            <View style={s.avatar}>
+              <Text style={s.avatarLetter}>{AVATAR_INITIAL}</Text>
+            </View>
           </View>
-          <Text style={styles.userName}>{user?.nome}</Text>
-          <Text style={styles.userEmail}>{user?.email}</Text>
+          <Text style={s.userName}>{user?.nome}</Text>
+          <Text style={s.userEmail}>{user?.email}</Text>
+          <View style={s.roleBadge}>
+            <Ionicons name="shield-checkmark-outline" size={12} color={colors.primary} />
+            <Text style={s.roleText}>Paciente</Text>
+          </View>
         </View>
 
         {/* Dados pessoais */}
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>Dados pessoais</Text>
+        <View style={s.card}>
+          <View style={s.cardHeader}>
+            <Text style={s.cardTitle}>Dados pessoais</Text>
             <TouchableOpacity
+              style={s.editBtnWrap}
               onPress={() => editando ? handleSalvar() : setEditando(true)}
               disabled={loading}
             >
               {loading
-                ? <ActivityIndicator size="small" color={Colors.primary} />
-                : <Text style={styles.editBtn}>{editando ? 'Salvar' : 'Editar'}</Text>
+                ? <ActivityIndicator size="small" color={colors.primary} />
+                : (
+                  <View style={[s.editBadge, editando && { backgroundColor: colors.primary }]}>
+                    <Ionicons name={editando ? 'checkmark' : 'pencil-outline'} size={14} color={editando ? colors.white : colors.primary} />
+                    <Text style={[s.editBadgeText, editando && { color: colors.white }]}>{editando ? 'Salvar' : 'Editar'}</Text>
+                  </View>
+                )
               }
             </TouchableOpacity>
           </View>
 
           {FIELDS.map(f => (
-            <View key={f.key} style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>{f.label}</Text>
+            <View key={f.key} style={s.fieldGroup}>
+              <Text style={s.fieldLabel}>{f.label}</Text>
               {editando ? (
-                <View style={styles.inputWrap}>
-                  <Ionicons name={f.icon} size={16} color={Colors.textMuted} style={{ marginRight: 8 }} />
+                <View style={s.inputWrap}>
+                  <Ionicons name={f.icon} size={16} color={colors.textMuted} />
                   <TextInput
-                    style={styles.input}
+                    style={s.input}
                     value={form[f.key]}
                     onChangeText={v => set(f.key, v)}
                     keyboardType={f.keyboard}
                     autoCapitalize={f.cap}
                     autoCorrect={false}
-                    placeholderTextColor={Colors.textMuted}
+                    placeholderTextColor={colors.textMuted}
                   />
                 </View>
               ) : (
-                <Text style={styles.fieldValue}>{form[f.key] || '—'}</Text>
+                <Text style={s.fieldValue}>{form[f.key] || '—'}</Text>
               )}
             </View>
           ))}
 
           {editando && (
-            <TouchableOpacity style={styles.cancelEdit} onPress={() => setEditando(false)}>
-              <Text style={styles.cancelEditText}>Cancelar edição</Text>
+            <TouchableOpacity style={s.cancelEdit} onPress={() => setEditando(false)}>
+              <Text style={s.cancelEditText}>Cancelar</Text>
             </TouchableOpacity>
           )}
         </View>
 
-        {/* Menu */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Conta</Text>
-          {MENU.map(item => (
-            <TouchableOpacity key={item.label} style={styles.menuItem} onPress={item.onPress}>
-              <View style={styles.menuIcon}>
-                <Ionicons name={item.icon} size={20} color={Colors.primary} />
+        {/* Preferências */}
+        <View style={s.card}>
+          <Text style={s.cardTitle}>Preferências</Text>
+          <View style={s.prefRow}>
+            <View style={s.prefLeft}>
+              <View style={[s.prefIcon, { backgroundColor: isDark ? colors.primarySurface : '#1e293b15' }]}>
+                <Ionicons name={isDark ? 'moon' : 'sunny-outline'} size={18} color={isDark ? colors.primary : '#64748b'} />
               </View>
-              <Text style={styles.menuLabel}>{item.label}</Text>
-              <Ionicons name="chevron-forward" size={16} color={Colors.textMuted} />
+              <View>
+                <Text style={s.prefLabel}>Modo escuro</Text>
+                <Text style={s.prefSub}>{isDark ? 'Ativado' : 'Desativado'}</Text>
+              </View>
+            </View>
+            <Switch
+              value={isDark}
+              onValueChange={toggle}
+              trackColor={{ false: colors.border, true: colors.primary + '60' }}
+              thumbColor={isDark ? colors.primary : colors.textMuted}
+            />
+          </View>
+        </View>
+
+        {/* Menu */}
+        <View style={s.card}>
+          <Text style={s.cardTitle}>Conta</Text>
+          {MENU.map((item, idx) => (
+            <TouchableOpacity
+              key={item.label}
+              style={[s.menuItem, idx === MENU.length - 1 && { borderBottomWidth: 0 }]}
+              onPress={item.onPress}
+            >
+              <View style={s.menuIcon}>
+                <Ionicons name={item.icon} size={18} color={colors.primary} />
+              </View>
+              <Text style={s.menuLabel}>{item.label}</Text>
+              <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
             </TouchableOpacity>
           ))}
         </View>
 
-        <View style={[styles.card, { marginBottom: Spacing.xl }]}>
-          <TouchableOpacity style={styles.menuItem} onPress={handleLogout}>
-            <View style={[styles.menuIcon, { backgroundColor: Colors.error + '15' }]}>
-              <Ionicons name="log-out-outline" size={20} color={Colors.error} />
-            </View>
-            <Text style={[styles.menuLabel, { color: Colors.error }]}>Sair da conta</Text>
-            <Ionicons name="chevron-forward" size={16} color={Colors.textMuted} />
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity style={s.logoutBtn} onPress={handleLogout}>
+          <Ionicons name="log-out-outline" size={18} color={colors.error} />
+          <Text style={s.logoutText}>Sair da conta</Text>
+        </TouchableOpacity>
+
+        <View style={{ height: 100 }} />
       </ScrollView>
 
       <EmergencyButton onPress={() => navigation.navigate('Emergencia')} />
@@ -149,26 +188,38 @@ export default function PerfilScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  container:     { flex: 1, backgroundColor: Colors.background },
-  scroll:        { paddingHorizontal: Spacing.lg },
-  avatarSection: { alignItems: 'center', marginBottom: Spacing.xl },
-  avatar:        { width: 84, height: 84, borderRadius: 42, backgroundColor: Colors.primary, alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.sm },
-  avatarLetter:  { fontSize: 38, fontWeight: '700', color: Colors.white },
-  userName:      { fontSize: FontSize.xl, fontWeight: '700', color: Colors.textPrimary },
-  userEmail:     { fontSize: FontSize.sm, color: Colors.textMuted, marginTop: 2 },
-  card:          { backgroundColor: Colors.white, borderRadius: BorderRadius.lg, padding: Spacing.md, marginBottom: Spacing.md, ...Shadow.sm },
-  cardHeader:    { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.md },
-  cardTitle:     { fontSize: FontSize.md, fontWeight: '600', color: Colors.textPrimary },
-  editBtn:       { fontSize: FontSize.sm, fontWeight: '600', color: Colors.primary },
-  fieldGroup:    { marginBottom: Spacing.md },
-  fieldLabel:    { fontSize: FontSize.xs, color: Colors.textMuted, marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 },
-  fieldValue:    { fontSize: FontSize.md, color: Colors.textPrimary },
-  inputWrap:     { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: Colors.primary, borderRadius: BorderRadius.md, paddingHorizontal: Spacing.md, height: 46, backgroundColor: Colors.primarySurface },
-  input:         { flex: 1, fontSize: FontSize.md, color: Colors.textPrimary },
-  cancelEdit:    { alignItems: 'center', paddingVertical: 8 },
-  cancelEditText:{ fontSize: FontSize.sm, color: Colors.textMuted },
-  menuItem:      { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: Colors.border },
-  menuIcon:      { width: 36, height: 36, borderRadius: 18, backgroundColor: Colors.primarySurface, alignItems: 'center', justifyContent: 'center' },
-  menuLabel:     { flex: 1, fontSize: FontSize.md, color: Colors.textPrimary },
+const makeStyles = (c, Sp, Fs, Br, Sh) => StyleSheet.create({
+  container:      { flex: 1, backgroundColor: c.background },
+  scroll:         { paddingHorizontal: Sp.lg },
+  avatarSection:  { alignItems: 'center', marginBottom: Sp.xl },
+  avatarRing:     { width: 96, height: 96, borderRadius: 48, borderWidth: 3, borderColor: c.primary + '40', alignItems: 'center', justifyContent: 'center', marginBottom: Sp.sm },
+  avatar:         { width: 84, height: 84, borderRadius: 42, backgroundColor: c.primary, alignItems: 'center', justifyContent: 'center' },
+  avatarLetter:   { fontSize: 38, fontWeight: '800', color: c.white },
+  userName:       { fontSize: Fs.xl, fontWeight: '700', color: c.textPrimary },
+  userEmail:      { fontSize: Fs.sm, color: c.textMuted, marginTop: 2 },
+  roleBadge:      { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: c.primarySurface, paddingHorizontal: 10, paddingVertical: 4, borderRadius: Br.full, marginTop: 8 },
+  roleText:       { fontSize: Fs.xs, color: c.primary, fontWeight: '600' },
+  card:           { backgroundColor: c.card, borderRadius: Br.lg, padding: Sp.md, marginBottom: Sp.md, ...Sh.sm },
+  cardHeader:     { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Sp.md },
+  cardTitle:      { fontSize: Fs.md, fontWeight: '700', color: c.textPrimary },
+  editBtnWrap:    {},
+  editBadge:      { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: c.primarySurface, paddingHorizontal: 10, paddingVertical: 5, borderRadius: Br.full },
+  editBadgeText:  { fontSize: Fs.xs, color: c.primary, fontWeight: '600' },
+  fieldGroup:     { marginBottom: Sp.md },
+  fieldLabel:     { fontSize: Fs.xs, color: c.textMuted, marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 },
+  fieldValue:     { fontSize: Fs.md, color: c.textPrimary, fontWeight: '500' },
+  inputWrap:      { flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderColor: c.primary, borderRadius: Br.md, paddingHorizontal: Sp.md, height: 46, backgroundColor: c.inputBg },
+  input:          { flex: 1, fontSize: Fs.md, color: c.textPrimary },
+  cancelEdit:     { alignItems: 'center', paddingVertical: 8 },
+  cancelEditText: { fontSize: Fs.sm, color: c.textMuted },
+  prefRow:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 4 },
+  prefLeft:       { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  prefIcon:       { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
+  prefLabel:      { fontSize: Fs.md, color: c.textPrimary, fontWeight: '500' },
+  prefSub:        { fontSize: Fs.xs, color: c.textMuted, marginTop: 1 },
+  menuItem:       { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 13, borderBottomWidth: 1, borderBottomColor: c.border },
+  menuIcon:       { width: 36, height: 36, borderRadius: 18, backgroundColor: c.primarySurface, alignItems: 'center', justifyContent: 'center' },
+  menuLabel:      { flex: 1, fontSize: Fs.md, color: c.textPrimary },
+  logoutBtn:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: c.error + '12', borderRadius: Br.lg, padding: Sp.md, borderWidth: 1, borderColor: c.error + '30' },
+  logoutText:     { fontSize: Fs.md, color: c.error, fontWeight: '600' },
 });

@@ -4,54 +4,29 @@ import {
   ActivityIndicator, Alert, RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { creditosService } from '../services/api';
 import EmergencyButton from '../components/EmergencyButton';
-import { Colors, Spacing, FontSize, BorderRadius, Shadow } from '../theme';
 
 const PLANOS = [
-  {
-    id: 'basico',
-    nome: 'Básico',
-    periodo: 'Mensal',
-    preco: 'R$ 49,90',
-    recorrencia: '10 créditos/semana',
-    beneficios: ['10 créditos toda semana', 'Chat com psicólogos', 'Suporte por email'],
-    destaque: false,
-    cor: Colors.info,
-  },
-  {
-    id: 'premium',
-    nome: 'Premium',
-    periodo: 'Mensal',
-    preco: 'R$ 89,90',
-    recorrencia: '20 créditos/dia',
-    beneficios: ['20 créditos todo dia', 'Chat ilimitado', 'Agendamento prioritário', 'Desconto em sessões', 'Suporte 24h'],
-    destaque: true,
-    cor: Colors.primary,
-  },
-  {
-    id: 'anual',
-    nome: 'Anual',
-    periodo: 'Anual',
-    preco: 'R$ 599,90',
-    recorrencia: '15 créditos/semana',
-    beneficios: ['15 créditos toda semana', 'Todos os benefícios Premium', '2 meses grátis'],
-    destaque: false,
-    cor: Colors.credits,
-  },
+  { id: 'basico',  nome: 'Básico',   preco: 'R$ 49,90', rec: '10 créditos/semana', beneficios: ['10 créditos toda semana', 'Chat com psicólogos', 'Suporte por email'], destaque: false, cor: '#3b82f6' },
+  { id: 'premium', nome: 'Premium',  preco: 'R$ 89,90', rec: '20 créditos/dia',    beneficios: ['20 créditos todo dia', 'Chat ilimitado', 'Agendamento prioritário', 'Desconto em sessões', 'Suporte 24h'], destaque: true, cor: '#1a6b47' },
+  { id: 'anual',   nome: 'Anual',    preco: 'R$ 599,90', rec: '15 créditos/semana', beneficios: ['15 créditos toda semana', 'Todos os benefícios Premium', '2 meses grátis'], destaque: false, cor: '#f97316' },
 ];
 
 const PACOTES = [
-  { id: 'p5',  creditos: 5,  preco: 'R$ 14,90' },
-  { id: 'p10', creditos: 10, preco: 'R$ 24,90' },
-  { id: 'p20', creditos: 20, preco: 'R$ 44,90' },
-  { id: 'p50', creditos: 50, preco: 'R$ 99,90' },
+  { id: 'p5',  creditos: 5,  preco: 'R$ 14,90', popular: false },
+  { id: 'p10', creditos: 10, preco: 'R$ 24,90', popular: true },
+  { id: 'p20', creditos: 20, preco: 'R$ 44,90', popular: false },
+  { id: 'p50', creditos: 50, preco: 'R$ 99,90', popular: false },
 ];
 
 export default function CreditosScreen({ navigation }) {
   const { user }   = useAuth();
+  const { colors, isDark, Spacing, FontSize, BorderRadius, Shadow } = useTheme();
   const insets     = useSafeAreaInsets();
   const [saldo, setSaldo]           = useState(null);
   const [assinatura, setAssinatura] = useState(null);
@@ -86,7 +61,7 @@ export default function CreditosScreen({ navigation }) {
             try {
               const { data } = await creditosService.comprar({ creditos: pacote.creditos, pacoteId: pacote.id });
               setSaldo(data?.saldo ?? (saldo + pacote.creditos));
-              Alert.alert('✅ Compra realizada!', `+${pacote.creditos} créditos adicionados ao seu saldo.`);
+              Alert.alert('✅ Compra realizada!', `+${pacote.creditos} créditos adicionados.`);
             } catch (_) {
               Alert.alert('Erro', 'Não foi possível completar a compra.');
             }
@@ -96,84 +71,111 @@ export default function CreditosScreen({ navigation }) {
     );
   };
 
-  const handleAssinar = (plano) => {
-    navigation.navigate('Planos', { plano });
-  };
+  if (loading) return <ActivityIndicator style={{ flex: 1 }} color={colors.primary} />;
 
-  if (loading) {
-    return <ActivityIndicator style={{ flex: 1 }} color={Colors.primary} />;
-  }
+  const s = makeStyles(colors, Spacing, FontSize, BorderRadius, Shadow);
 
   return (
-    <View style={styles.container}>
+    <View style={s.container}>
       <ScrollView
-        contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 12 }]}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
       >
-        {/* Saldo */}
-        <View style={styles.saldoCard}>
-          <View>
-            <Text style={styles.saldoLabel}>Seu saldo</Text>
-            <Text style={styles.saldoValue}>{saldo ?? 0} créditos</Text>
-            {assinatura
-              ? <Text style={styles.saldoSub}>Plano {assinatura.nomePlano} ativo ✓</Text>
-              : <Text style={styles.saldoSub}>Sem assinatura ativa</Text>
-            }
-          </View>
-          <TouchableOpacity style={styles.extratoBtn} onPress={() => navigation.navigate('Extrato')}>
-            <Ionicons name="receipt-outline" size={20} color={Colors.white} />
-            <Text style={styles.extratoBtnText}>Extrato</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Planos */}
-        <Text style={styles.sectionTitle}>Planos de assinatura</Text>
-        <Text style={styles.sectionSub}>Créditos automáticos todo período</Text>
-
-        {PLANOS.map(plano => (
-          <View key={plano.id} style={[styles.planoCard, plano.destaque && styles.planoDestaque]}>
-            {plano.destaque && (
-              <View style={styles.planoBadge}>
-                <Text style={styles.planoBadgeText}>Mais popular</Text>
-              </View>
-            )}
-            <View style={styles.planoHeader}>
-              <View>
-                <Text style={[styles.planoNome, { color: plano.cor }]}>{plano.nome}</Text>
-                <Text style={styles.planoPeriodo}>{plano.periodo}</Text>
-              </View>
-              <View style={{ alignItems: 'flex-end' }}>
-                <Text style={styles.planoPreco}>{plano.preco}</Text>
-                <Text style={styles.planoRec}>{plano.recorrencia}</Text>
-              </View>
+        {/* Header */}
+        <LinearGradient
+          colors={[colors.primaryDark, colors.primary]}
+          style={[s.header, { paddingTop: insets.top + 20 }]}
+        >
+          <Text style={s.headerTitle}>Créditos</Text>
+          <View style={s.saldoBox}>
+            <View>
+              <Text style={s.saldoLabel}>Saldo disponível</Text>
+              <Text style={s.saldoValue}>{saldo ?? 0}</Text>
+              <Text style={s.saldoUnit}>créditos</Text>
             </View>
-            <View style={styles.sep} />
-            {plano.beneficios.map((b, i) => (
-              <View key={i} style={styles.benefRow}>
-                <Ionicons name="checkmark-circle" size={16} color={plano.cor} />
-                <Text style={styles.benefText}>{b}</Text>
+            <TouchableOpacity style={s.extratoBtn} onPress={() => navigation.navigate('Extrato')}>
+              <Ionicons name="receipt-outline" size={18} color={colors.white} />
+              <Text style={s.extratoBtnText}>Ver extrato</Text>
+            </TouchableOpacity>
+          </View>
+          {assinatura ? (
+            <View style={s.assinaturaBadge}>
+              <Ionicons name="checkmark-circle" size={14} color={colors.success} />
+              <Text style={s.assinaturaText}>Plano {assinatura.nomePlano} ativo</Text>
+            </View>
+          ) : (
+            <View style={s.assinaturaBadge}>
+              <Ionicons name="information-circle-outline" size={14} color="rgba(255,255,255,0.6)" />
+              <Text style={[s.assinaturaText, { color: 'rgba(255,255,255,0.6)' }]}>Sem assinatura ativa</Text>
+            </View>
+          )}
+        </LinearGradient>
+
+        <View style={s.body}>
+          {/* Compra avulsa */}
+          <View style={s.section}>
+            <Text style={s.sectionTitle}>Compra avulsa</Text>
+            <Text style={s.sectionSub}>Sem mensalidade, pague só o que precisar</Text>
+            <View style={s.pacotesGrid}>
+              {PACOTES.map(pacote => (
+                <TouchableOpacity
+                  key={pacote.id}
+                  style={[s.pacoteCard, pacote.popular && s.pacoteCardPopular]}
+                  onPress={() => handleComprar(pacote)}
+                  activeOpacity={0.85}
+                >
+                  {pacote.popular && (
+                    <View style={s.popularBadge}>
+                      <Text style={s.popularText}>Popular</Text>
+                    </View>
+                  )}
+                  <Ionicons name="star" size={22} color={colors.credits} />
+                  <Text style={s.pacoteCreditos}>{pacote.creditos}</Text>
+                  <Text style={s.pacoteLabel}>créditos</Text>
+                  <Text style={s.pacotePreco}>{pacote.preco}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          {/* Planos */}
+          <View style={s.section}>
+            <Text style={s.sectionTitle}>Planos de assinatura</Text>
+            <Text style={s.sectionSub}>Créditos automáticos todo período</Text>
+
+            {PLANOS.map(plano => (
+              <View key={plano.id} style={[s.planoCard, plano.destaque && { borderColor: plano.cor, borderWidth: 2 }]}>
+                {plano.destaque && (
+                  <View style={[s.planoBadge, { backgroundColor: plano.cor }]}>
+                    <Text style={s.planoBadgeText}>⭐ Mais popular</Text>
+                  </View>
+                )}
+                <View style={s.planoTop}>
+                  <View style={[s.planoIconWrap, { backgroundColor: plano.cor + '15' }]}>
+                    <Ionicons name="shield-checkmark-outline" size={22} color={plano.cor} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[s.planoNome, { color: plano.cor }]}>{plano.nome}</Text>
+                    <Text style={s.planoRec}>{plano.rec}</Text>
+                  </View>
+                  <Text style={s.planoPreco}>{plano.preco}<Text style={s.planoPer}>/mês</Text></Text>
+                </View>
+                <View style={s.sep} />
+                {plano.beneficios.map((b, i) => (
+                  <View key={i} style={s.benefRow}>
+                    <Ionicons name="checkmark-circle" size={15} color={plano.cor} />
+                    <Text style={s.benefText}>{b}</Text>
+                  </View>
+                ))}
+                <TouchableOpacity
+                  style={[s.planoBtn, { backgroundColor: plano.cor }]}
+                  onPress={() => navigation.navigate('Planos', { plano })}
+                >
+                  <Text style={s.planoBtnText}>Assinar {plano.nome}</Text>
+                </TouchableOpacity>
               </View>
             ))}
-            <TouchableOpacity style={[styles.planoBtn, { backgroundColor: plano.cor }]} onPress={() => handleAssinar(plano)}>
-              <Text style={styles.planoBtnText}>Assinar {plano.nome}</Text>
-            </TouchableOpacity>
           </View>
-        ))}
-
-        {/* Avulso */}
-        <Text style={[styles.sectionTitle, { marginTop: Spacing.lg }]}>Compra avulsa</Text>
-        <Text style={styles.sectionSub}>Sem mensalidade, pague só o que precisar</Text>
-
-        <View style={styles.avulsosGrid}>
-          {PACOTES.map(pacote => (
-            <TouchableOpacity key={pacote.id} style={styles.avulsoCard} onPress={() => handleComprar(pacote)}>
-              <Ionicons name="star" size={20} color={Colors.credits} />
-              <Text style={styles.avulsoCreditos}>{pacote.creditos}</Text>
-              <Text style={styles.avulsoLabel}>créditos</Text>
-              <Text style={styles.avulsoPreco}>{pacote.preco}</Text>
-            </TouchableOpacity>
-          ))}
         </View>
 
         <View style={{ height: 100 }} />
@@ -184,34 +186,42 @@ export default function CreditosScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  container:      { flex: 1, backgroundColor: Colors.background },
-  scroll:         { paddingHorizontal: Spacing.lg },
-  saldoCard:      { backgroundColor: Colors.primaryDark, borderRadius: BorderRadius.xl, padding: Spacing.lg, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.xl, ...Shadow.md },
-  saldoLabel:     { fontSize: FontSize.sm, color: 'rgba(255,255,255,0.7)', marginBottom: 4 },
-  saldoValue:     { fontSize: 32, fontWeight: '700', color: Colors.white },
-  saldoSub:       { fontSize: FontSize.xs, color: 'rgba(255,255,255,0.6)', marginTop: 4 },
-  extratoBtn:     { alignItems: 'center', gap: 4 },
-  extratoBtnText: { fontSize: FontSize.xs, color: 'rgba(255,255,255,0.8)' },
-  sectionTitle:   { fontSize: FontSize.lg, fontWeight: '700', color: Colors.textPrimary, marginBottom: 4 },
-  sectionSub:     { fontSize: FontSize.sm, color: Colors.textMuted, marginBottom: Spacing.md },
-  planoCard:      { backgroundColor: Colors.white, borderRadius: BorderRadius.lg, padding: Spacing.lg, marginBottom: Spacing.md, borderWidth: 1, borderColor: Colors.border, ...Shadow.sm },
-  planoDestaque:  { borderColor: Colors.primary, borderWidth: 2 },
-  planoBadge:     { alignSelf: 'flex-start', backgroundColor: Colors.primarySurface, paddingHorizontal: 10, paddingVertical: 3, borderRadius: BorderRadius.full, marginBottom: 10 },
-  planoBadgeText: { fontSize: FontSize.xs, fontWeight: '600', color: Colors.primary },
-  planoHeader:    { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: Spacing.sm },
-  planoNome:      { fontSize: FontSize.lg, fontWeight: '700' },
-  planoPeriodo:   { fontSize: FontSize.sm, color: Colors.textMuted },
-  planoPreco:     { fontSize: FontSize.lg, fontWeight: '700', color: Colors.textPrimary },
-  planoRec:       { fontSize: FontSize.xs, color: Colors.textMuted },
-  sep:            { height: 1, backgroundColor: Colors.border, marginVertical: Spacing.sm },
-  benefRow:       { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
-  benefText:      { fontSize: FontSize.sm, color: Colors.textSecondary },
-  planoBtn:       { borderRadius: BorderRadius.md, height: 46, alignItems: 'center', justifyContent: 'center', marginTop: Spacing.md },
-  planoBtnText:   { color: Colors.white, fontSize: FontSize.md, fontWeight: '600' },
-  avulsosGrid:    { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  avulsoCard:     { width: '47%', backgroundColor: Colors.white, borderRadius: BorderRadius.lg, padding: Spacing.md, alignItems: 'center', gap: 4, ...Shadow.sm, borderWidth: 1, borderColor: Colors.border },
-  avulsoCreditos: { fontSize: 28, fontWeight: '700', color: Colors.textPrimary },
-  avulsoLabel:    { fontSize: FontSize.xs, color: Colors.textMuted },
-  avulsoPreco:    { fontSize: FontSize.sm, fontWeight: '600', color: Colors.primary, marginTop: 4 },
+const makeStyles = (c, Sp, Fs, Br, Sh) => StyleSheet.create({
+  container:       { flex: 1, backgroundColor: c.background },
+  header:          { paddingHorizontal: Sp.lg, paddingBottom: Sp.xl },
+  headerTitle:     { fontSize: Fs.xxl, fontWeight: '800', color: c.white, marginBottom: Sp.md },
+  saldoBox:        { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: Sp.sm },
+  saldoLabel:      { fontSize: Fs.sm, color: 'rgba(255,255,255,0.7)', marginBottom: 2 },
+  saldoValue:      { fontSize: 52, fontWeight: '800', color: c.white, lineHeight: 56 },
+  saldoUnit:       { fontSize: Fs.sm, color: 'rgba(255,255,255,0.7)' },
+  extratoBtn:      { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,0.15)', paddingHorizontal: 14, paddingVertical: 8, borderRadius: Br.full },
+  extratoBtnText:  { fontSize: Fs.sm, color: c.white, fontWeight: '600' },
+  assinaturaBadge: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 },
+  assinaturaText:  { fontSize: Fs.sm, color: c.success, fontWeight: '500' },
+  body:            { paddingHorizontal: Sp.lg, paddingTop: Sp.lg },
+  section:         { marginBottom: Sp.xl },
+  sectionTitle:    { fontSize: Fs.lg, fontWeight: '700', color: c.textPrimary, marginBottom: 4 },
+  sectionSub:      { fontSize: Fs.sm, color: c.textMuted, marginBottom: Sp.md },
+  pacotesGrid:     { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  pacoteCard:      { width: '47%', backgroundColor: c.card, borderRadius: Br.lg, padding: Sp.md, alignItems: 'center', gap: 4, ...Sh.sm, borderWidth: 1, borderColor: c.border },
+  pacoteCardPopular: { borderColor: c.credits, borderWidth: 2 },
+  popularBadge:    { backgroundColor: c.credits, paddingHorizontal: 8, paddingVertical: 2, borderRadius: Br.full, marginBottom: 2 },
+  popularText:     { fontSize: 10, color: c.white, fontWeight: '700' },
+  pacoteCreditos:  { fontSize: 32, fontWeight: '800', color: c.textPrimary },
+  pacoteLabel:     { fontSize: Fs.xs, color: c.textMuted },
+  pacotePreco:     { fontSize: Fs.sm, fontWeight: '700', color: c.primary, marginTop: 4 },
+  planoCard:       { backgroundColor: c.card, borderRadius: Br.lg, padding: Sp.md, marginBottom: Sp.md, borderWidth: 1, borderColor: c.border, ...Sh.sm },
+  planoBadge:      { alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: Br.full, marginBottom: Sp.sm },
+  planoBadgeText:  { fontSize: Fs.xs, fontWeight: '700', color: c.white },
+  planoTop:        { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: Sp.sm },
+  planoIconWrap:   { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
+  planoNome:       { fontSize: Fs.lg, fontWeight: '700' },
+  planoRec:        { fontSize: Fs.xs, color: c.textMuted, marginTop: 2 },
+  planoPreco:      { fontSize: Fs.lg, fontWeight: '800', color: c.textPrimary },
+  planoPer:        { fontSize: Fs.xs, color: c.textMuted, fontWeight: '400' },
+  sep:             { height: 1, backgroundColor: c.border, marginVertical: Sp.sm },
+  benefRow:        { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
+  benefText:       { fontSize: Fs.sm, color: c.textSecondary },
+  planoBtn:        { borderRadius: Br.md, height: 46, alignItems: 'center', justifyContent: 'center', marginTop: Sp.md },
+  planoBtnText:    { color: c.white, fontSize: Fs.md, fontWeight: '700' },
 });

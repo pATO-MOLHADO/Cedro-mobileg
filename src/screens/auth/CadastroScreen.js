@@ -4,12 +4,14 @@ import {
   KeyboardAvoidingView, Platform, ScrollView, Alert, ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../../contexts/AuthContext';
 import { authService } from '../../services/api';
-import { Colors, Spacing, FontSize, BorderRadius, Shadow } from '../../theme';
+import { useTheme } from '../../contexts/ThemeContext';
 
 export default function CadastroScreen({ navigation }) {
   const { login } = useAuth();
+  const { colors, Spacing, FontSize, BorderRadius, Shadow } = useTheme();
   const [form, setForm]           = useState({ nome: '', email: '', senha: '', telefone: '' });
   const [showSenha, setShowSenha] = useState(false);
   const [loading, setLoading]     = useState(false);
@@ -28,7 +30,6 @@ export default function CadastroScreen({ navigation }) {
     setLoading(true);
     try {
       const { data: newUser } = await authService.register(form);
-      // Auto-login após cadastro
       const { data: loginData } = await authService.login(form.email, form.senha);
       await login(loginData.usuarioResponse ?? newUser, loginData.token ?? 'mock_token');
     } catch (err) {
@@ -39,116 +40,118 @@ export default function CadastroScreen({ navigation }) {
     }
   };
 
+  const FIELDS = [
+    { key: 'nome',     label: 'Nome completo', icon: 'person-outline',  placeholder: 'Seu nome completo',  keyboard: 'default',       cap: 'words' },
+    { key: 'email',    label: 'Email',         icon: 'mail-outline',    placeholder: 'seu@email.com',       keyboard: 'email-address', cap: 'none' },
+    { key: 'telefone', label: 'Telefone',      icon: 'call-outline',    placeholder: '(11) 99999-9999',    keyboard: 'phone-pad',     cap: 'none' },
+  ];
+
+  const s = makeStyles(colors, Spacing, FontSize, BorderRadius, Shadow);
+
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={22} color={Colors.white} />
-        </TouchableOpacity>
+    <KeyboardAvoidingView style={s.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <LinearGradient colors={[colors.primaryDark, colors.primary]} style={s.gradient}>
+        <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
 
-        <View style={styles.header}>
-          <View style={styles.logoBox}>
-            <Ionicons name="leaf" size={30} color={Colors.white} />
+          <View style={s.topBar}>
+            <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
+              <Ionicons name="arrow-back" size={22} color={colors.white} />
+            </TouchableOpacity>
           </View>
-          <Text style={styles.logoText}>Criar conta</Text>
-          <Text style={styles.subtitle}>Comece sua jornada de bem-estar</Text>
-        </View>
 
-        <View style={styles.card}>
-          {[
-            { key: 'nome',     label: 'Nome completo', icon: 'person-outline',      placeholder: 'Seu nome',            keyboard: 'default',       cap: 'words' },
-            { key: 'email',    label: 'Email',         icon: 'mail-outline',         placeholder: 'seu@email.com',       keyboard: 'email-address', cap: 'none' },
-            { key: 'telefone', label: 'Telefone',      icon: 'call-outline',         placeholder: '(11) 99999-9999',    keyboard: 'phone-pad',     cap: 'none' },
-          ].map(f => (
-            <View key={f.key} style={styles.inputGroup}>
-              <Text style={styles.label}>{f.label}</Text>
-              <View style={styles.inputWrap}>
-                <Ionicons name={f.icon} size={18} color={Colors.textMuted} style={styles.inputIcon} />
+          <View style={s.hero}>
+            <View style={s.logoWrap}>
+              <Ionicons name="leaf" size={30} color={colors.white} />
+            </View>
+            <Text style={s.heroTitle}>Criar conta</Text>
+            <Text style={s.heroSub}>Comece sua jornada de bem-estar</Text>
+          </View>
+
+          <View style={s.card}>
+            {FIELDS.map(f => (
+              <View key={f.key} style={s.field}>
+                <Text style={s.label}>{f.label}</Text>
+                <View style={s.inputRow}>
+                  <Ionicons name={f.icon} size={18} color={colors.textMuted} />
+                  <TextInput
+                    style={s.input}
+                    placeholder={f.placeholder}
+                    placeholderTextColor={colors.textMuted}
+                    keyboardType={f.keyboard}
+                    autoCapitalize={f.cap}
+                    autoCorrect={false}
+                    value={form[f.key]}
+                    onChangeText={v => set(f.key, v)}
+                  />
+                </View>
+              </View>
+            ))}
+
+            <View style={s.field}>
+              <Text style={s.label}>Senha</Text>
+              <View style={s.inputRow}>
+                <Ionicons name="lock-closed-outline" size={18} color={colors.textMuted} />
                 <TextInput
-                  style={styles.input}
-                  placeholder={f.placeholder}
-                  placeholderTextColor={Colors.textMuted}
-                  keyboardType={f.keyboard}
-                  autoCapitalize={f.cap}
-                  autoCorrect={false}
-                  value={form[f.key]}
-                  onChangeText={v => set(f.key, v)}
+                  style={[s.input, { flex: 1 }]}
+                  placeholder="mín. 6 caracteres"
+                  placeholderTextColor={colors.textMuted}
+                  secureTextEntry={!showSenha}
+                  value={form.senha}
+                  onChangeText={v => set('senha', v)}
+                  autoCapitalize="none"
                 />
+                <TouchableOpacity onPress={() => setShowSenha(v => !v)}>
+                  <Ionicons name={showSenha ? 'eye-off-outline' : 'eye-outline'} size={18} color={colors.textMuted} />
+                </TouchableOpacity>
               </View>
             </View>
-          ))}
 
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Senha</Text>
-            <View style={styles.inputWrap}>
-              <Ionicons name="lock-closed-outline" size={18} color={Colors.textMuted} style={styles.inputIcon} />
-              <TextInput
-                style={[styles.input, { flex: 1 }]}
-                placeholder="mín. 6 caracteres"
-                placeholderTextColor={Colors.textMuted}
-                secureTextEntry={!showSenha}
-                value={form.senha}
-                onChangeText={v => set('senha', v)}
-                autoCapitalize="none"
-              />
-              <TouchableOpacity onPress={() => setShowSenha(s => !s)} style={styles.eyeBtn}>
-                <Ionicons name={showSenha ? 'eye-off-outline' : 'eye-outline'} size={18} color={Colors.textMuted} />
-              </TouchableOpacity>
-            </View>
+            <TouchableOpacity style={[s.btn, loading && { opacity: 0.7 }]} onPress={handleCadastro} disabled={loading}>
+              {loading
+                ? <ActivityIndicator color={colors.white} />
+                : <Text style={s.btnText}>Criar conta</Text>
+              }
+            </TouchableOpacity>
+
+            <Text style={s.terms}>
+              Ao criar conta você concorda com os{' '}
+              <Text style={s.termsLink}>Termos de Uso</Text>.
+            </Text>
           </View>
 
-          <TouchableOpacity
-            style={[styles.btn, loading && styles.btnDisabled]}
-            onPress={handleCadastro}
-            disabled={loading}
-          >
-            {loading
-              ? <ActivityIndicator color={Colors.white} />
-              : <Text style={styles.btnText}>Criar conta</Text>
-            }
-          </TouchableOpacity>
+          <View style={s.footer}>
+            <Text style={s.footerText}>Já tem conta? </Text>
+            <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+              <Text style={s.footerLink}>Entrar</Text>
+            </TouchableOpacity>
+          </View>
 
-          <Text style={styles.terms}>
-            Ao criar conta você concorda com os{' '}
-            <Text style={styles.termsLink}>Termos de Uso</Text>.
-          </Text>
-        </View>
-
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>Já tem conta? </Text>
-          <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-            <Text style={styles.footerLink}>Entrar</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
+        </ScrollView>
+      </LinearGradient>
     </KeyboardAvoidingView>
   );
 }
 
-const styles = StyleSheet.create({
-  container:   { flex: 1, backgroundColor: Colors.primary },
-  scroll:      { flexGrow: 1, paddingHorizontal: Spacing.lg, paddingTop: 50, paddingBottom: 40 },
-  backBtn:     { marginBottom: Spacing.md },
-  header:      { alignItems: 'center', marginBottom: Spacing.xl },
-  logoBox:     { width: 60, height: 60, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.sm },
-  logoText:    { fontSize: 26, fontWeight: '700', color: Colors.white },
-  subtitle:    { fontSize: FontSize.sm, color: 'rgba(255,255,255,0.8)', marginTop: 4 },
-  card:        { backgroundColor: Colors.white, borderRadius: BorderRadius.xl, padding: Spacing.lg, ...Shadow.md },
-  inputGroup:  { marginBottom: Spacing.md },
-  label:       { fontSize: FontSize.sm, fontWeight: '500', color: Colors.textSecondary, marginBottom: 6 },
-  inputWrap:   { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: Colors.border, borderRadius: BorderRadius.md, backgroundColor: Colors.background, paddingHorizontal: Spacing.md, height: 50 },
-  inputIcon:   { marginRight: 8 },
-  input:       { flex: 1, fontSize: FontSize.md, color: Colors.textPrimary },
-  eyeBtn:      { padding: 4 },
-  btn:         { backgroundColor: Colors.primary, borderRadius: BorderRadius.md, height: 50, alignItems: 'center', justifyContent: 'center', marginTop: Spacing.sm },
-  btnDisabled: { opacity: 0.7 },
-  btnText:     { color: Colors.white, fontSize: FontSize.md, fontWeight: '700' },
-  terms:       { fontSize: FontSize.xs, color: Colors.textMuted, textAlign: 'center', marginTop: Spacing.md, lineHeight: 18 },
-  termsLink:   { color: Colors.primary, fontWeight: '500' },
-  footer:      { flexDirection: 'row', justifyContent: 'center', marginTop: Spacing.xl },
-  footerText:  { color: 'rgba(255,255,255,0.8)', fontSize: FontSize.sm },
-  footerLink:  { color: Colors.white, fontSize: FontSize.sm, fontWeight: '700' },
+const makeStyles = (c, Sp, Fs, Br, Sh) => StyleSheet.create({
+  container:  { flex: 1 },
+  gradient:   { flex: 1 },
+  scroll:     { flexGrow: 1, paddingHorizontal: Sp.lg, paddingTop: 50, paddingBottom: 40 },
+  topBar:     { marginBottom: Sp.sm },
+  backBtn:    { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
+  hero:       { alignItems: 'center', marginBottom: Sp.xl },
+  logoWrap:   { width: 60, height: 60, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center', marginBottom: Sp.sm, borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)' },
+  heroTitle:  { fontSize: Fs.xl, fontWeight: '800', color: c.white },
+  heroSub:    { fontSize: Fs.sm, color: 'rgba(255,255,255,0.75)', marginTop: 4 },
+  card:       { backgroundColor: c.surface, borderRadius: Br.xl, padding: Sp.lg, ...Sh.md },
+  field:      { marginBottom: Sp.md },
+  label:      { fontSize: Fs.xs, fontWeight: '600', color: c.textSecondary, marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.6 },
+  inputRow:   { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: c.inputBg, borderRadius: Br.md, borderWidth: 1, borderColor: c.border, paddingHorizontal: Sp.md, height: 52 },
+  input:      { flex: 1, fontSize: Fs.md, color: c.textPrimary },
+  btn:        { backgroundColor: c.primary, borderRadius: Br.md, height: 52, alignItems: 'center', justifyContent: 'center', marginTop: Sp.sm, marginBottom: Sp.md },
+  btnText:    { color: c.white, fontSize: Fs.md, fontWeight: '700', letterSpacing: 0.5 },
+  terms:      { fontSize: Fs.xs, color: c.textMuted, textAlign: 'center', lineHeight: 18 },
+  termsLink:  { color: c.primary, fontWeight: '600' },
+  footer:     { flexDirection: 'row', justifyContent: 'center', marginTop: Sp.xl },
+  footerText: { color: 'rgba(255,255,255,0.75)', fontSize: Fs.sm },
+  footerLink: { color: c.white, fontSize: Fs.sm, fontWeight: '700' },
 });

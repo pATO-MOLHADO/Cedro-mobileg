@@ -3,14 +3,16 @@ import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { creditosService, sessoesService } from '../services/api';
 import EmergencyButton from '../components/EmergencyButton';
-import { Colors, Spacing, FontSize, BorderRadius, Shadow } from '../theme';
 
 export default function HomeScreen({ navigation }) {
   const { user }   = useAuth();
+  const { colors, Spacing, FontSize, BorderRadius, Shadow } = useTheme();
   const insets     = useSafeAreaInsets();
   const [saldo, setSaldo]               = useState(null);
   const [proximaSessao, setProximaSessao] = useState(null);
@@ -34,11 +36,7 @@ export default function HomeScreen({ navigation }) {
 
   useEffect(() => { load(); }, [load]);
 
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await load();
-    setRefreshing(false);
-  };
+  const onRefresh = async () => { setRefreshing(true); await load(); setRefreshing(false); };
 
   const saudacao = () => {
     const h = new Date().getHours();
@@ -56,88 +54,115 @@ export default function HomeScreen({ navigation }) {
   };
 
   const QUICK = [
-    { icon: 'people',        label: 'Psicólogos', dest: 'Psicólogos',  color: Colors.info },
-    { icon: 'calendar',      label: 'Sessões',    dest: 'Sessões',     color: Colors.success },
-    { icon: 'wallet',        label: 'Créditos',   dest: 'Créditos',    color: Colors.credits },
-    { icon: 'alert-circle',  label: 'Emergência', dest: 'Emergencia',  color: Colors.emergency },
+    { icon: 'people',       label: 'Psicólogos', dest: 'Psicólogos', color: colors.info,      bg: colors.info + '15' },
+    { icon: 'calendar',     label: 'Sessões',    dest: 'Sessões',    color: colors.success,   bg: colors.success + '15' },
+    { icon: 'wallet',       label: 'Créditos',   dest: 'Créditos',   color: colors.credits,   bg: colors.credits + '15' },
+    { icon: 'alert-circle', label: 'Emergência', dest: 'Emergencia', color: colors.emergency, bg: colors.emergency + '15' },
   ];
 
+  const s = makeStyles(colors, Spacing, FontSize, BorderRadius, Shadow);
+
   return (
-    <View style={styles.container}>
+    <View style={s.container}>
       <ScrollView
-        contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 16 }]}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
       >
-        {/* Greeting */}
-        <View style={styles.headerRow}>
-          <View>
-            <Text style={styles.greeting}>{saudacao()},</Text>
-            <Text style={styles.userName}>{user?.nome?.split(' ')[0]} 👋</Text>
-          </View>
-          <TouchableOpacity style={styles.notifBtn}>
-            <Ionicons name="notifications-outline" size={22} color={Colors.textPrimary} />
-          </TouchableOpacity>
-        </View>
-
-        {/* Credits card */}
-        <TouchableOpacity
-          style={styles.creditCard}
-          onPress={() => navigation.navigate('Créditos')}
-          activeOpacity={0.85}
+        {/* Header com gradiente */}
+        <LinearGradient
+          colors={[colors.primaryDark, colors.primary]}
+          style={[s.header, { paddingTop: insets.top + 20 }]}
         >
-          <View style={{ flex: 1 }}>
-            <Text style={styles.creditLabel}>Seus créditos</Text>
-            <Text style={styles.creditValue}>
-              {saldo === null ? '—' : `${saldo} créditos`}
-            </Text>
-            <Text style={styles.creditSub}>Toque para recarregar</Text>
-          </View>
-          <View style={styles.creditIcon}>
-            <Ionicons name="wallet" size={30} color={Colors.credits} />
-          </View>
-        </TouchableOpacity>
-
-        {/* Next session */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Próxima sessão</Text>
-          {proximaSessao ? (
-            <TouchableOpacity style={styles.sessaoCard} onPress={() => navigation.navigate('Sessões')}>
-              <View style={styles.sessaoIcon}>
-                <Ionicons name="calendar" size={22} color={Colors.primary} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.sessaoNome}>{proximaSessao.psicologoNome ?? 'Psicólogo'}</Text>
-                <Text style={styles.sessaoData}>{formatDate(proximaSessao.dataSessao)}</Text>
-                <Text style={styles.sessaoDur}>{proximaSessao.duracao ?? 60} min</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />
+          <View style={s.headerRow}>
+            <View>
+              <Text style={s.greeting}>{saudacao()},</Text>
+              <Text style={s.userName}>{user?.nome?.split(' ')[0]} 👋</Text>
+            </View>
+            <TouchableOpacity style={s.notifBtn}>
+              <Ionicons name="notifications-outline" size={22} color={colors.white} />
             </TouchableOpacity>
-          ) : (
-            <TouchableOpacity style={styles.agendarBanner} onPress={() => navigation.navigate('Psicólogos')}>
-              <Ionicons name="calendar-outline" size={22} color={Colors.primary} />
-              <Text style={styles.agendarText}>Agendar sua primeira sessão</Text>
-              <Ionicons name="arrow-forward" size={18} color={Colors.primary} />
-            </TouchableOpacity>
-          )}
-        </View>
+          </View>
 
-        {/* Quick access */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Acesso rápido</Text>
-          <View style={styles.quickGrid}>
-            {QUICK.map(item => (
-              <TouchableOpacity
-                key={item.label}
-                style={styles.quickItem}
-                onPress={() => navigation.navigate(item.dest)}
-              >
-                <View style={[styles.quickIcon, { backgroundColor: item.color + '18' }]}>
-                  <Ionicons name={item.icon} size={24} color={item.color} />
+          {/* Card de créditos dentro do header */}
+          <TouchableOpacity style={s.creditCard} onPress={() => navigation.navigate('Créditos')} activeOpacity={0.85}>
+            <View style={s.creditLeft}>
+              <View style={s.creditIconWrap}>
+                <Ionicons name="wallet" size={22} color={colors.credits} />
+              </View>
+              <View>
+                <Text style={s.creditLabel}>Seus créditos</Text>
+                <Text style={s.creditValue}>{saldo === null ? '—' : `${saldo} créditos`}</Text>
+              </View>
+            </View>
+            <View style={s.creditArrow}>
+              <Text style={s.creditArrowText}>Recarregar</Text>
+              <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.7)" />
+            </View>
+          </TouchableOpacity>
+        </LinearGradient>
+
+        <View style={s.body}>
+          {/* Próxima sessão */}
+          <View style={s.section}>
+            <Text style={s.sectionTitle}>Próxima sessão</Text>
+            {proximaSessao ? (
+              <TouchableOpacity style={s.sessaoCard} onPress={() => navigation.navigate('Sessões')} activeOpacity={0.85}>
+                <View style={s.sessaoIconWrap}>
+                  <Ionicons name="calendar" size={22} color={colors.primary} />
                 </View>
-                <Text style={styles.quickLabel}>{item.label}</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.sessaoNome}>{proximaSessao.psicologoNome ?? 'Psicólogo'}</Text>
+                  <Text style={s.sessaoData}>{formatDate(proximaSessao.dataSessao)}</Text>
+                  <View style={s.sessaoBadge}>
+                    <View style={[s.dot, { backgroundColor: colors.agendada }]} />
+                    <Text style={s.sessaoBadgeText}>{proximaSessao.duracao ?? 60} min · Agendada</Text>
+                  </View>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
               </TouchableOpacity>
-            ))}
+            ) : (
+              <TouchableOpacity style={s.agendarBanner} onPress={() => navigation.navigate('Psicólogos')} activeOpacity={0.85}>
+                <View style={s.agendarIconWrap}>
+                  <Ionicons name="calendar-outline" size={22} color={colors.primary} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.agendarTitle}>Nenhuma sessão agendada</Text>
+                  <Text style={s.agendarSub}>Encontre um psicólogo e agende agora</Text>
+                </View>
+                <Ionicons name="arrow-forward" size={18} color={colors.primary} />
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {/* Acesso rápido */}
+          <View style={s.section}>
+            <Text style={s.sectionTitle}>Acesso rápido</Text>
+            <View style={s.quickGrid}>
+              {QUICK.map(item => (
+                <TouchableOpacity
+                  key={item.label}
+                  style={s.quickItem}
+                  onPress={() => navigation.navigate(item.dest)}
+                  activeOpacity={0.8}
+                >
+                  <View style={[s.quickIcon, { backgroundColor: item.bg }]}>
+                    <Ionicons name={item.icon} size={26} color={item.color} />
+                  </View>
+                  <Text style={s.quickLabel}>{item.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          {/* Dica de bem-estar */}
+          <View style={s.section}>
+            <Text style={s.sectionTitle}>Dica do dia</Text>
+            <View style={s.dicaCard}>
+              <Ionicons name="bulb-outline" size={22} color={colors.warning} style={{ marginBottom: 8 }} />
+              <Text style={s.dicaText}>
+                Reservar 10 minutos por dia para respiração consciente pode reduzir significativamente os níveis de ansiedade.
+              </Text>
+            </View>
           </View>
         </View>
 
@@ -149,29 +174,38 @@ export default function HomeScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  container:     { flex: 1, backgroundColor: Colors.background },
-  scroll:        { paddingHorizontal: Spacing.lg },
-  headerRow:     { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: Spacing.lg },
-  greeting:      { fontSize: FontSize.sm, color: Colors.textMuted },
-  userName:      { fontSize: FontSize.xl, fontWeight: '700', color: Colors.textPrimary, marginTop: 2 },
-  notifBtn:      { padding: 8, borderRadius: BorderRadius.md, backgroundColor: Colors.white, ...Shadow.sm },
-  creditCard:    { backgroundColor: Colors.primaryDark, borderRadius: BorderRadius.lg, padding: Spacing.lg, flexDirection: 'row', alignItems: 'center', marginBottom: Spacing.lg, ...Shadow.md },
-  creditLabel:   { fontSize: FontSize.sm, color: 'rgba(255,255,255,0.7)', marginBottom: 4 },
-  creditValue:   { fontSize: FontSize.xxl, fontWeight: '700', color: Colors.white },
-  creditSub:     { fontSize: FontSize.xs, color: 'rgba(255,255,255,0.6)', marginTop: 4 },
-  creditIcon:    { width: 56, height: 56, borderRadius: 28, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center' },
-  section:       { marginBottom: Spacing.lg },
-  sectionTitle:  { fontSize: FontSize.md, fontWeight: '600', color: Colors.textPrimary, marginBottom: Spacing.sm },
-  sessaoCard:    { backgroundColor: Colors.white, borderRadius: BorderRadius.lg, padding: Spacing.md, flexDirection: 'row', alignItems: 'center', ...Shadow.sm },
-  sessaoIcon:    { width: 44, height: 44, borderRadius: 22, backgroundColor: Colors.primarySurface, alignItems: 'center', justifyContent: 'center', marginRight: Spacing.md },
-  sessaoNome:    { fontSize: FontSize.md, fontWeight: '600', color: Colors.textPrimary },
-  sessaoData:    { fontSize: FontSize.sm, color: Colors.textSecondary, marginTop: 2 },
-  sessaoDur:     { fontSize: FontSize.xs, color: Colors.textMuted, marginTop: 1 },
-  agendarBanner: { backgroundColor: Colors.primarySurface, borderRadius: BorderRadius.lg, padding: Spacing.md, flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1, borderColor: Colors.primary + '30' },
-  agendarText:   { flex: 1, fontSize: FontSize.md, fontWeight: '500', color: Colors.primary },
-  quickGrid:     { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  quickItem:     { width: '47%', backgroundColor: Colors.white, borderRadius: BorderRadius.lg, padding: Spacing.md, alignItems: 'center', ...Shadow.sm },
-  quickIcon:     { width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
-  quickLabel:    { fontSize: FontSize.sm, fontWeight: '500', color: Colors.textPrimary },
+const makeStyles = (c, Sp, Fs, Br, Sh) => StyleSheet.create({
+  container:       { flex: 1, backgroundColor: c.background },
+  header:          { paddingHorizontal: Sp.lg, paddingBottom: Sp.xl },
+  headerRow:       { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: Sp.lg },
+  greeting:        { fontSize: Fs.sm, color: 'rgba(255,255,255,0.75)' },
+  userName:        { fontSize: Fs.xl, fontWeight: '800', color: c.white, marginTop: 2 },
+  notifBtn:        { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
+  creditCard:      { backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: Br.lg, padding: Sp.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
+  creditLeft:      { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  creditIconWrap:  { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
+  creditLabel:     { fontSize: Fs.xs, color: 'rgba(255,255,255,0.7)', marginBottom: 2 },
+  creditValue:     { fontSize: Fs.lg, fontWeight: '700', color: c.white },
+  creditArrow:     { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  creditArrowText: { fontSize: Fs.xs, color: 'rgba(255,255,255,0.7)' },
+  body:            { paddingHorizontal: Sp.lg, paddingTop: Sp.lg },
+  section:         { marginBottom: Sp.lg },
+  sectionTitle:    { fontSize: Fs.md, fontWeight: '700', color: c.textPrimary, marginBottom: Sp.sm },
+  sessaoCard:      { backgroundColor: c.card, borderRadius: Br.lg, padding: Sp.md, flexDirection: 'row', alignItems: 'center', gap: 12, ...Sh.sm },
+  sessaoIconWrap:  { width: 48, height: 48, borderRadius: 24, backgroundColor: c.primarySurface, alignItems: 'center', justifyContent: 'center' },
+  sessaoNome:      { fontSize: Fs.md, fontWeight: '600', color: c.textPrimary, marginBottom: 2 },
+  sessaoData:      { fontSize: Fs.sm, color: c.textSecondary, marginBottom: 4 },
+  sessaoBadge:     { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  dot:             { width: 6, height: 6, borderRadius: 3 },
+  sessaoBadgeText: { fontSize: Fs.xs, color: c.textMuted },
+  agendarBanner:   { backgroundColor: c.card, borderRadius: Br.lg, padding: Sp.md, flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1.5, borderColor: c.primary + '40', ...Sh.sm },
+  agendarIconWrap: { width: 48, height: 48, borderRadius: 24, backgroundColor: c.primarySurface, alignItems: 'center', justifyContent: 'center' },
+  agendarTitle:    { fontSize: Fs.md, fontWeight: '600', color: c.textPrimary },
+  agendarSub:      { fontSize: Fs.sm, color: c.textMuted, marginTop: 2 },
+  quickGrid:       { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  quickItem:       { width: '47%', backgroundColor: c.card, borderRadius: Br.lg, padding: Sp.md, alignItems: 'center', gap: 8, ...Sh.sm },
+  quickIcon:       { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center' },
+  quickLabel:      { fontSize: Fs.sm, fontWeight: '600', color: c.textPrimary },
+  dicaCard:        { backgroundColor: c.card, borderRadius: Br.lg, padding: Sp.md, borderLeftWidth: 3, borderLeftColor: c.warning, ...Sh.sm },
+  dicaText:        { fontSize: Fs.sm, color: c.textSecondary, lineHeight: 22 },
 });

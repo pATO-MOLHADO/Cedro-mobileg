@@ -1,25 +1,29 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Colors, Spacing, FontSize, BorderRadius, Shadow } from '../theme';
+import { useTheme } from '../contexts/ThemeContext';
 
 const TAXA = 0.10;
 
-function StarRow({ nota }) {
+const AVATAR_COLORS = ['#6366f1', '#ec4899', '#f97316', '#14b8a6', '#8b5cf6', '#06b6d4'];
+
+function StarRow({ nota, colors, FontSize }) {
   const n = Math.round(nota ?? 5);
   return (
-    <View style={{ flexDirection: 'row', gap: 3 }}>
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
       {[1, 2, 3, 4, 5].map(i => (
-        <Ionicons key={i} name={i <= n ? 'star' : 'star-outline'} size={16} color="#F39C12" />
+        <Ionicons key={i} name={i <= n ? 'star' : 'star-outline'} size={16} color="#F59E0B" />
       ))}
-      <Text style={{ fontSize: FontSize.sm, color: Colors.textMuted, marginLeft: 4 }}>({nota ?? 5}.0)</Text>
+      <Text style={{ fontSize: FontSize.sm, color: 'rgba(255,255,255,0.7)', marginLeft: 4 }}>({nota ?? 5}.0)</Text>
     </View>
   );
 }
 
 export default function PsicologoDetailScreen({ navigation, route }) {
   const { psicologo } = route.params ?? {};
+  const { colors, Spacing, FontSize, BorderRadius, Shadow } = useTheme();
   const insets = useSafeAreaInsets();
 
   const precoBase  = parseFloat(psicologo?.precoSessao ?? 0);
@@ -27,59 +31,77 @@ export default function PsicologoDetailScreen({ navigation, route }) {
     ? `R$ ${(precoBase * (1 + TAXA)).toFixed(2).replace('.', ',')}`
     : '—';
 
+  const avatarColor = AVATAR_COLORS[(psicologo?.id ?? 0) % AVATAR_COLORS.length];
+
+  const s = makeStyles(colors, Spacing, FontSize, BorderRadius, Shadow);
+
   return (
-    <View style={styles.container}>
+    <View style={s.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Header verde */}
-        <View style={[styles.headerBg, { paddingTop: insets.top + 12 }]}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <Ionicons name="arrow-back" size={22} color={Colors.white} />
+        <LinearGradient
+          colors={[colors.primaryDark, colors.primary]}
+          style={[s.headerBg, { paddingTop: insets.top + 12 }]}
+        >
+          <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
+            <Ionicons name="arrow-back" size={22} color={colors.white} />
           </TouchableOpacity>
 
-          <View style={styles.avatarBox}>
-            <View style={styles.avatar}>
-              <Text style={styles.avatarLetter}>{psicologo?.nome?.charAt(0)?.toUpperCase()}</Text>
+          <View style={s.avatarBox}>
+            <View style={[s.avatarRing, { borderColor: avatarColor + '60' }]}>
+              <View style={[s.avatar, { backgroundColor: avatarColor + '25' }]}>
+                <Text style={[s.avatarLetter, { color: avatarColor }]}>{psicologo?.nome?.charAt(0)?.toUpperCase()}</Text>
+              </View>
             </View>
-            <Text style={styles.nome}>{psicologo?.nome}</Text>
-            <Text style={styles.esp}>{psicologo?.especialidade ?? 'Psicologia geral'}</Text>
-            <View style={{ marginTop: 8 }}>
-              <StarRow nota={psicologo?.avaliacao} />
+            <Text style={s.nome}>{psicologo?.nome}</Text>
+            <View style={s.espBadge}>
+              <Text style={s.esp}>{psicologo?.especialidade ?? 'Psicologia geral'}</Text>
+            </View>
+            <View style={{ marginTop: 10 }}>
+              <StarRow nota={psicologo?.avaliacao} colors={colors} FontSize={FontSize} />
             </View>
           </View>
-        </View>
+        </LinearGradient>
 
         {/* Sobre */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Sobre</Text>
-          <Text style={styles.bio}>
+        <View style={s.card}>
+          <View style={s.cardTitleRow}>
+            <Ionicons name="person-outline" size={18} color={colors.primary} />
+            <Text style={s.cardTitle}>Sobre</Text>
+          </View>
+          <Text style={s.bio}>
             {psicologo?.bio ?? 'Profissional dedicado ao bem-estar dos pacientes, com abordagem humanista e acolhedora.'}
           </Text>
         </View>
 
         {/* Preço */}
-        <View style={styles.card}>
-          <View style={styles.precoRow}>
-            <Text style={styles.precoLabel}>Valor por sessão</Text>
-            <Text style={styles.preco}>{precoFinal}</Text>
+        <View style={s.card}>
+          <View style={s.precoRow}>
+            <View>
+              <Text style={s.precoLabel}>Valor por sessão</Text>
+              <Text style={s.precoSub}>Inclui taxa de serviço Cedro (10%)</Text>
+            </View>
+            <Text style={s.preco}>{precoFinal}</Text>
           </View>
-          <Text style={styles.precoSub}>Inclui taxa de serviço Cedro (10%)</Text>
         </View>
 
-        {/* Info extras */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Informações</Text>
+        {/* Info */}
+        <View style={s.card}>
+          <View style={s.cardTitleRow}>
+            <Ionicons name="information-circle-outline" size={18} color={colors.primary} />
+            <Text style={s.cardTitle}>Informações</Text>
+          </View>
           {[
             { icon: 'time-outline',     label: 'Duração padrão', value: '60 minutos' },
             { icon: 'globe-outline',    label: 'Modalidade',     value: 'Online (videochamada)' },
             { icon: 'language-outline', label: 'Idiomas',        value: 'Português' },
           ].map(item => (
-            <View key={item.label} style={styles.infoRow}>
-              <View style={styles.infoIcon}>
-                <Ionicons name={item.icon} size={18} color={Colors.primary} />
+            <View key={item.label} style={s.infoRow}>
+              <View style={s.infoIcon}>
+                <Ionicons name={item.icon} size={18} color={colors.primary} />
               </View>
               <View>
-                <Text style={styles.infoLabel}>{item.label}</Text>
-                <Text style={styles.infoValue}>{item.value}</Text>
+                <Text style={s.infoLabel}>{item.label}</Text>
+                <Text style={s.infoValue}>{item.value}</Text>
               </View>
             </View>
           ))}
@@ -88,50 +110,52 @@ export default function PsicologoDetailScreen({ navigation, route }) {
         <View style={{ height: 20 }} />
       </ScrollView>
 
-      {/* Botões de ação fixos */}
-      <View style={[styles.actions, { paddingBottom: insets.bottom + 12 }]}>
+      <View style={[s.actions, { paddingBottom: insets.bottom + 12 }]}>
         <TouchableOpacity
-          style={styles.agendarBtn}
+          style={s.agendarBtn}
           onPress={() => navigation.navigate('AgendarSessao', { psicologo })}
         >
-          <Ionicons name="calendar" size={20} color={Colors.primary} />
-          <Text style={styles.agendarBtnText}>Agendar sessão</Text>
+          <Ionicons name="calendar-outline" size={20} color={colors.primary} />
+          <Text style={s.agendarBtnText}>Agendar sessão</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={styles.chatBtn}
+          style={s.chatBtn}
           onPress={() => navigation.navigate('ChatPsicologo', { psicologo })}
         >
-          <Ionicons name="chatbubbles" size={20} color={Colors.white} />
-          <Text style={styles.chatBtnText}>Chat · usa créditos</Text>
+          <Ionicons name="chatbubbles" size={20} color={colors.white} />
+          <Text style={s.chatBtnText}>Iniciar chat</Text>
         </TouchableOpacity>
       </View>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container:   { flex: 1, backgroundColor: Colors.background },
-  headerBg:    { backgroundColor: Colors.primary, paddingHorizontal: Spacing.lg, paddingBottom: Spacing.xl },
-  backBtn:     { marginBottom: Spacing.md },
-  avatarBox:   { alignItems: 'center' },
-  avatar:      { width: 90, height: 90, borderRadius: 45, backgroundColor: Colors.white, alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.sm, borderWidth: 3, borderColor: 'rgba(255,255,255,0.4)' },
-  avatarLetter:{ fontSize: 40, fontWeight: '700', color: Colors.primary },
-  nome:        { fontSize: FontSize.xl, fontWeight: '700', color: Colors.white },
-  esp:         { fontSize: FontSize.sm, color: 'rgba(255,255,255,0.8)', marginTop: 4 },
-  card:        { backgroundColor: Colors.white, marginHorizontal: Spacing.lg, marginTop: Spacing.md, borderRadius: BorderRadius.lg, padding: Spacing.lg, ...Shadow.sm },
-  cardTitle:   { fontSize: FontSize.md, fontWeight: '600', color: Colors.textPrimary, marginBottom: Spacing.sm },
-  bio:         { fontSize: FontSize.md, color: Colors.textSecondary, lineHeight: 24 },
-  precoRow:    { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  precoLabel:  { fontSize: FontSize.md, color: Colors.textSecondary },
-  preco:       { fontSize: FontSize.xl, fontWeight: '700', color: Colors.primary },
-  precoSub:    { fontSize: FontSize.xs, color: Colors.textMuted, marginTop: 4 },
-  infoRow:     { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 },
-  infoIcon:    { width: 36, height: 36, borderRadius: 18, backgroundColor: Colors.primarySurface, alignItems: 'center', justifyContent: 'center' },
-  infoLabel:   { fontSize: FontSize.xs, color: Colors.textMuted },
-  infoValue:   { fontSize: FontSize.sm, color: Colors.textPrimary, fontWeight: '500' },
-  actions:     { backgroundColor: Colors.white, paddingHorizontal: Spacing.lg, paddingTop: Spacing.md, borderTopWidth: 1, borderTopColor: Colors.border, gap: 10 },
-  agendarBtn:  { height: 50, borderRadius: BorderRadius.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderWidth: 1.5, borderColor: Colors.primary },
-  agendarBtnText: { color: Colors.primary, fontSize: FontSize.md, fontWeight: '600' },
-  chatBtn:     { height: 50, backgroundColor: Colors.primary, borderRadius: BorderRadius.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
-  chatBtnText: { color: Colors.white, fontSize: FontSize.md, fontWeight: '600' },
+const makeStyles = (c, Sp, Fs, Br, Sh) => StyleSheet.create({
+  container:    { flex: 1, backgroundColor: c.background },
+  headerBg:     { paddingHorizontal: Sp.lg, paddingBottom: Sp.xl },
+  backBtn:      { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center', marginBottom: Sp.md },
+  avatarBox:    { alignItems: 'center' },
+  avatarRing:   { width: 100, height: 100, borderRadius: 50, borderWidth: 3, alignItems: 'center', justifyContent: 'center', marginBottom: Sp.sm },
+  avatar:       { width: 88, height: 88, borderRadius: 44, alignItems: 'center', justifyContent: 'center' },
+  avatarLetter: { fontSize: 42, fontWeight: '800' },
+  nome:         { fontSize: Fs.xl, fontWeight: '800', color: c.white, textAlign: 'center' },
+  espBadge:     { backgroundColor: 'rgba(255,255,255,0.15)', paddingHorizontal: 14, paddingVertical: 5, borderRadius: Br.full, marginTop: 6 },
+  esp:          { fontSize: Fs.sm, color: 'rgba(255,255,255,0.9)', fontWeight: '500' },
+  card:         { backgroundColor: c.card, marginHorizontal: Sp.lg, marginTop: Sp.md, borderRadius: Br.lg, padding: Sp.md, ...Sh.sm },
+  cardTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: Sp.sm },
+  cardTitle:    { fontSize: Fs.md, fontWeight: '700', color: c.textPrimary },
+  bio:          { fontSize: Fs.md, color: c.textSecondary, lineHeight: 24 },
+  precoRow:     { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  precoLabel:   { fontSize: Fs.md, fontWeight: '600', color: c.textPrimary },
+  precoSub:     { fontSize: Fs.xs, color: c.textMuted, marginTop: 2 },
+  preco:        { fontSize: Fs.xl, fontWeight: '800', color: c.primary },
+  infoRow:      { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 },
+  infoIcon:     { width: 38, height: 38, borderRadius: 19, backgroundColor: c.primarySurface, alignItems: 'center', justifyContent: 'center' },
+  infoLabel:    { fontSize: Fs.xs, color: c.textMuted },
+  infoValue:    { fontSize: Fs.sm, color: c.textPrimary, fontWeight: '600' },
+  actions:      { backgroundColor: c.card, paddingHorizontal: Sp.lg, paddingTop: Sp.md, borderTopWidth: 1, borderTopColor: c.border, flexDirection: 'row', gap: 10 },
+  agendarBtn:   { flex: 1, height: 52, borderRadius: Br.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderWidth: 1.5, borderColor: c.primary },
+  agendarBtnText: { color: c.primary, fontSize: Fs.md, fontWeight: '700' },
+  chatBtn:      { flex: 1, height: 52, backgroundColor: c.primary, borderRadius: Br.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  chatBtnText:  { color: c.white, fontSize: Fs.md, fontWeight: '700' },
 });

@@ -6,20 +6,17 @@ import { Ionicons } from '@expo/vector-icons';
 import { ActivityIndicator, View } from 'react-native';
 
 import { useAuth } from '../contexts/AuthContext';
-import { Colors } from '../theme';
+import { useTheme } from '../contexts/ThemeContext';
 
-// Auth screens
 import LoginScreen    from '../screens/auth/LoginScreen';
 import CadastroScreen from '../screens/auth/CadastroScreen';
 
-// Tab screens
 import HomeScreen       from '../screens/HomeScreen';
 import PsicologosScreen from '../screens/PsicologosScreen';
 import CreditosScreen   from '../screens/CreditosScreen';
 import SessoesScreen    from '../screens/SessoesScreen';
 import PerfilScreen     from '../screens/PerfilScreen';
 
-// Stack screens
 import PsicologoDetailScreen from '../screens/PsicologoDetailScreen';
 import EmergenciaScreen      from '../screens/EmergenciaScreen';
 import ChatPsicologoScreen   from '../screens/ChatPsicologoScreen';
@@ -39,23 +36,25 @@ const TAB_CONFIG = [
 ];
 
 function TabNavigator() {
+  const { colors } = useTheme();
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => {
         const tab = TAB_CONFIG.find(t => t.name === route.name);
         return {
           headerShown: false,
-          tabBarActiveTintColor:   Colors.primary,
-          tabBarInactiveTintColor: Colors.textMuted,
+          tabBarActiveTintColor:   colors.primary,
+          tabBarInactiveTintColor: colors.textMuted,
           tabBarStyle: {
-            backgroundColor: Colors.white,
-            borderTopColor:  Colors.border,
+            backgroundColor: colors.tabBar,
+            borderTopColor:  colors.border,
             borderTopWidth:  1,
             height:          62,
             paddingBottom:   8,
             paddingTop:      6,
           },
-          tabBarLabelStyle: { fontSize: 10, fontWeight: '500' },
+          tabBarLabelStyle: { fontSize: 10, fontWeight: '600' },
           tabBarIcon: ({ focused, color }) =>
             tab ? (
               <Ionicons
@@ -76,11 +75,12 @@ function TabNavigator() {
 
 export default function Navigation() {
   const { isAuthenticated, loading } = useAuth();
+  const { colors } = useTheme();
 
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background }}>
-        <ActivityIndicator size="large" color={Colors.primary} />
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
